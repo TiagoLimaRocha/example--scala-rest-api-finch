@@ -54,4 +54,19 @@ object Main extends IOApp {
         .transact(xa)
     } yield Created(created)
   }
+
+   val update: Endpoint[IO, Todo] = put(root :: path[Int] :: jsonBody[Todo]) {
+    (id: Int, todo: Todo) => for {
+      _ <- sql"UPDATE todo SET 
+          name = ${todo.name},
+          todo = ${todo.description},
+          done = ${todo.done}
+        WHERE id = $id"
+
+      todo <- sql"SELECT * FROM todo WHERE id = $id"
+        .query[Todo]
+        .unique
+        .transact(xa)
+    } yield Ok(todo)
+  }
 }
