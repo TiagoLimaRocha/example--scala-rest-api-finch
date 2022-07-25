@@ -78,4 +78,16 @@ object Main extends IOApp {
         .transact(xa)
     } yield NoContent
   }
+
+  val findOne: Endpoint[IO, Todo] = get(root :: path[Int]) {
+    id: Int => for {
+      todos <- sql"SELECT * FROM todo WHERE id = $id"
+        .query[Todo]
+        .to[Set]
+        .transact(xa)
+    } yield todos.headOption match {
+      case None => NotFound(new Exception("Record not found"))
+      case Some(todo) => Ok(todo)
+    }
+  }
 }
