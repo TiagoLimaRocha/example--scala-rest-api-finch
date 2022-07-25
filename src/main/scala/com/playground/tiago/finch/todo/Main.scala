@@ -69,4 +69,13 @@ object Main extends IOApp {
         .transact(xa)
     } yield Ok(todo)
   }
+
+  val delete: Endpoint[IO, Todo] = delete(root :: path[Int]) {
+    id: Int => for {
+      _ <- sql"DELETE FROM todo WHERE id = $id"
+        .update
+        .run
+        .transact(xa)
+    } yield NoContent
+  }
 }
