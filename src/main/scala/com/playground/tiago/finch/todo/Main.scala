@@ -99,4 +99,19 @@ object Main extends IOApp {
         .transact(xa)
     } yield Ok(todos)
   }
+
+  def startServer: IO[ListeningServer] = createDb.transact(xa).flatMap { 
+    _ => IO(Http.server.serve(
+      ":8081", 
+      (create :+: update :+: delete :+: findOne :+: findMany).toServiceAs[Application.Json]
+    ))
+  }
+
+  def run(args: List[String]): IO[ExitCode] = {
+    val server = Resource.make(startServer)(
+      s => IO.suspend(implicitly[ToAsync[Future, IO]].apply(s.close()))
+    )
+
+    server.use(_ => IO.never).as(ExitCode.Success)
+  }
 }
