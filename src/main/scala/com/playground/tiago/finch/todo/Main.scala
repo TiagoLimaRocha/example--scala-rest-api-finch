@@ -90,4 +90,13 @@ object Main extends IOApp {
       case Some(todo) => Ok(todo)
     }
   }
+
+  val findMany: Endpoint[IO, Seq[Todo]] = get(root) {
+    for {
+      todos <- sql"SELECT * FROM todo"
+        .query[Todo]
+        .to[Seq]
+        .transact(xa)
+    } yield Ok(todos)
+  }
 }
