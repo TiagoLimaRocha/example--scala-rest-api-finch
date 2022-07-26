@@ -17,7 +17,7 @@ import doobie.util.transactor.Transactor
 import doobie._
 import doobie.implicits._
 
-import _root_.com.playground.tiago.finch.todo.models.Todo
+import com.playground.tiago.finch.todo.models.Todo
 
 object Main extends IOApp {
   implicit val cs = IO.contextShift(ExecutionContexts.synchronous)
