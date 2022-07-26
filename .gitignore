@@ -1,4 +1,5 @@
 .metals
 .bloop
+.scalafmt.conf
 project
 target
