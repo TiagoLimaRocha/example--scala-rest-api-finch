@@ -102,7 +102,7 @@ object Main extends IOApp {
       IO(
         Http.server.serve(
           ":8081",
-          (create :+: findOne :+: update :+: deleteOne :+: findMany)
+          (create :+: update :+: deleteOne :+: findOne :+: findMany)
             .toServiceAs[Application.Json]
         )
       )
