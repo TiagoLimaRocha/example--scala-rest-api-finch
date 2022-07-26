@@ -1,4 +1,4 @@
-scalaVersion := "3.1.3"
+scalaVersion := "2.12.11"
 
 name := "todo"
 organization := "com.playground.tiago"
