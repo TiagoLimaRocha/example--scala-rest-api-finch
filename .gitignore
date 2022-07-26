@@ -1,5 +1,6 @@
 .metals
 .bloop
 .scalafmt.conf
+.vscode
 project
 target

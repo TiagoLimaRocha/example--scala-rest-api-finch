@@ -30,55 +30,34 @@ object Main extends IOApp {
     Blocker.liftExecutionContext(ExecutionContexts.synchronous)
   )
 
-  val root: String = "todos"
-
   val createDb = sql"""
-      CREATE TABLE IF NOT EXISTS todo (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        description TEXT,
-        done NUMERIC
-      )
+    CREATE TABLE IF NOT EXISTS todo (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT,
+      done NUMERIC
+    )
     """.update.run
+
+  val root: String = "todos"
 
   val create: Endpoint[IO, Todo] = post(root :: jsonBody[Todo]) { todo: Todo =>
     for {
       id <-
-        sql"INSERT INTO todo (name, description, done)  VALUES (${todo.name}, ${todo.description}, ${todo.done})".update
+        sql"insert into todo (name, description, done) values (${todo.name}, ${todo.description}, ${todo.done})".update
           .withUniqueGeneratedKeys[Int]("id")
           .transact(xa)
 
-      created <- sql"SQL * FROM todo WHERE id = $id"
+      created <- sql"select * from todo where id = $id"
         .query[Todo]
         .unique
         .transact(xa)
     } yield Created(created)
   }
 
-  val update: Endpoint[IO, Todo] = put(root :: path[Int] :: jsonBody[Todo]) {
-    (id: Int, todo: Todo) =>
-      for {
-        _ <-
-          sql"UPDATE todo SET name = ${todo.name}, todo = ${todo.description}, done = ${todo.done} WHERE id = $id".update.run
-            .transact(xa)
-
-        todo <- sql"SELECT * FROM todo WHERE id = $id"
-          .query[Todo]
-          .unique
-          .transact(xa)
-      } yield Ok(todo)
-  }
-
-  val delete: Endpoint[IO, Unit] = delete(root :: path[Int]) { id: Int =>
-    for {
-      _ <- sql"delete from todo where id = $id".update.run
-        .transact(xa)
-    } yield NoContent
-  }
-
   val findOne: Endpoint[IO, Todo] = get(root :: path[Int]) { id: Int =>
     for {
-      todos <- sql"SELECT * FROM todo WHERE id = $id"
+      todos <- sql"select * from todo where id = $id"
         .query[Todo]
         .to[Set]
         .transact(xa)
@@ -88,24 +67,46 @@ object Main extends IOApp {
     }
   }
 
+  val update: Endpoint[IO, Todo] =
+    put(root :: path[Int] :: jsonBody[Todo]) { (id: Int, todo: Todo) =>
+      for {
+        _ <-
+          sql"update todo set name = ${todo.name}, description = ${todo.description}, done = ${todo.done} where id = $id".update.run
+            .transact(xa)
+
+        todo <- sql"select * from todo where id = $id"
+          .query[Todo]
+          .unique
+          .transact(xa)
+      } yield Ok(todo)
+    }
+
   val findMany: Endpoint[IO, Seq[Todo]] = get(root) {
     for {
-      todos <- sql"SELECT * FROM todo"
+      todos <- sql"select * from todo"
         .query[Todo]
         .to[Seq]
         .transact(xa)
     } yield Ok(todos)
   }
 
-  def startServer: IO[ListeningServer] = createDb.transact(xa).flatMap { _ =>
-    IO(
-      Http.server.serve(
-        ":8081",
-        (create :+: update :+: delete :+: findOne :+: findMany)
-          .toServiceAs[Application.Json]
-      )
-    )
+  val deleteOne: Endpoint[IO, Unit] = delete(root :: path[Int]) { id: Int =>
+    for {
+      _ <- sql"delete from todo where id = $id".update.run
+        .transact(xa)
+    } yield NoContent
   }
+
+  def startServer: IO[ListeningServer] =
+    createDb.transact(xa).flatMap { _ =>
+      IO(
+        Http.server.serve(
+          ":8081",
+          (create :+: findOne :+: update :+: deleteOne :+: findMany)
+            .toServiceAs[Application.Json]
+        )
+      )
+    }
 
   def run(args: List[String]): IO[ExitCode] = {
     val server = Resource.make(startServer)(s =>
