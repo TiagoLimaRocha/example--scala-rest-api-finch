@@ -44,11 +44,11 @@ object Main extends IOApp {
   val create: Endpoint[IO, Todo] = post(root :: jsonBody[Todo]) { todo: Todo =>
     for {
       id <-
-        sql"insert into todo (name, description, done) values (${todo.name}, ${todo.description}, ${todo.done})".update
+        sql"INSERT INTO todo (name, description, done) VALUES (${todo.name}, ${todo.description}, ${todo.done})".update
           .withUniqueGeneratedKeys[Int]("id")
           .transact(xa)
 
-      created <- sql"select * from todo where id = $id"
+      created <- sql"SELECT * FROM todo WHERE id = $id"
         .query[Todo]
         .unique
         .transact(xa)
@@ -57,7 +57,7 @@ object Main extends IOApp {
 
   val findOne: Endpoint[IO, Todo] = get(root :: path[Int]) { id: Int =>
     for {
-      todos <- sql"select * from todo where id = $id"
+      todos <- sql"SELECT * FROM todo WHERE id = $id"
         .query[Todo]
         .to[Set]
         .transact(xa)
@@ -71,10 +71,10 @@ object Main extends IOApp {
     put(root :: path[Int] :: jsonBody[Todo]) { (id: Int, todo: Todo) =>
       for {
         _ <-
-          sql"update todo set name = ${todo.name}, description = ${todo.description}, done = ${todo.done} where id = $id".update.run
+          sql"UPDATE todo SET name = ${todo.name}, description = ${todo.description}, done = ${todo.done} WHERE id = $id".update.run
             .transact(xa)
 
-        todo <- sql"select * from todo where id = $id"
+        todo <- sql"SELECT * FROM todo WHERE id = $id"
           .query[Todo]
           .unique
           .transact(xa)
@@ -83,7 +83,7 @@ object Main extends IOApp {
 
   val findMany: Endpoint[IO, Seq[Todo]] = get(root) {
     for {
-      todos <- sql"select * from todo"
+      todos <- sql"SELECT * FROM todo"
         .query[Todo]
         .to[Seq]
         .transact(xa)
@@ -92,7 +92,7 @@ object Main extends IOApp {
 
   val deleteOne: Endpoint[IO, Unit] = delete(root :: path[Int]) { id: Int =>
     for {
-      _ <- sql"delete from todo where id = $id".update.run
+      _ <- sql"DELETE FROM todo WHERE id = $id".update.run
         .transact(xa)
     } yield NoContent
   }
