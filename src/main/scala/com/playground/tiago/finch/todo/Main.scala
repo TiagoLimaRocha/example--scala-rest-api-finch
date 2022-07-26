@@ -55,18 +55,6 @@ object Main extends IOApp {
     } yield Created(created)
   }
 
-  val findOne: Endpoint[IO, Todo] = get(root :: path[Int]) { id: Int =>
-    for {
-      todos <- sql"SELECT * FROM todo WHERE id = $id"
-        .query[Todo]
-        .to[Set]
-        .transact(xa)
-    } yield todos.headOption match {
-      case None       => NotFound(new Exception("Record not found"))
-      case Some(todo) => Ok(todo)
-    }
-  }
-
   val update: Endpoint[IO, Todo] =
     put(root :: path[Int] :: jsonBody[Todo]) { (id: Int, todo: Todo) =>
       for {
@@ -80,6 +68,18 @@ object Main extends IOApp {
           .transact(xa)
       } yield Ok(todo)
     }
+
+  val findOne: Endpoint[IO, Todo] = get(root :: path[Int]) { id: Int =>
+    for {
+      todos <- sql"SELECT * FROM todo WHERE id = $id"
+        .query[Todo]
+        .to[Set]
+        .transact(xa)
+    } yield todos.headOption match {
+      case None       => NotFound(new Exception("Record not found"))
+      case Some(todo) => Ok(todo)
+    }
+  }
 
   val findMany: Endpoint[IO, Seq[Todo]] = get(root) {
     for {
